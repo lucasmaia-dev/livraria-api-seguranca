@@ -1,0 +1,64 @@
+@baseUrl = http://localhost:3000
+
+### Lista pública
+GET {{baseUrl}}/api/v1/livros
+
+### Login ADMIN (credenciais locais de demonstração)
+# @name adminLogin
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{"email":"admin@livraria.com","senha":"admin123"}
+
+### Login USER
+# @name userLogin
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{"email":"leitor@gmail.com","senha":"leitor123"}
+
+### Cadastro público (sempre USER)
+POST {{baseUrl}}/api/v1/auth/register
+Content-Type: application/json
+
+{"nome":"Ana Silva","email":"ana@example.com","senha":"minhaSenha123"}
+
+### Consulta pública de autores
+GET {{baseUrl}}/api/v1/autores
+
+### Cadastro de autor com JWT ADMIN
+POST {{baseUrl}}/api/v1/autores
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+Content-Type: application/json
+
+{"nome":"Clarice Lispector","nacionalidade":"Brasileira"}
+
+### Cadastro de livro com JWT ADMIN (autor de demonstração)
+POST {{baseUrl}}/api/v1/livros
+Authorization: Bearer {{adminLogin.response.body.$.token}}
+Content-Type: application/json
+
+{"titulo":"Memórias Póstumas de Brás Cubas","ano":1881,"autor_id":1}
+
+### Consultar livro
+GET {{baseUrl}}/api/v1/livros/1
+
+### Comentário autenticado como USER
+POST {{baseUrl}}/api/v1/livros/1/comentarios
+Authorization: Bearer {{userLogin.response.body.$.token}}
+Content-Type: application/json
+
+{"texto":"Clássico indispensável."}
+
+### 403 esperado: USER tentando cadastrar autor
+POST {{baseUrl}}/api/v1/autores
+Authorization: Bearer {{userLogin.response.body.$.token}}
+Content-Type: application/json
+
+{"nome":"Autor sem permissão"}
+
+### 401 esperado: comentário sem token
+POST {{baseUrl}}/api/v1/livros/1/comentarios
+Content-Type: application/json
+
+{"texto":"Comentário sem autenticação"}

@@ -1,0 +1,23 @@
+﻿name: Validar API e contrato OpenAPI
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: 'livraria-api-seguranca-pronto (1)/livraria-api-node-main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: 'livraria-api-seguranca-pronto (1)/livraria-api-node-main/package-lock.json'
+      - run: npm ci
+      - run: npm test
+      - run: npm run docs:export
+      - run: git diff --exit-code -- docs/openapi.json

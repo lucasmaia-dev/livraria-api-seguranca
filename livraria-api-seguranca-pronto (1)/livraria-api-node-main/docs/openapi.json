@@ -1,0 +1,960 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Livraria API - Livros, Autores e Segurança",
+    "version": "1.1.0",
+    "description": "Contrato da API REST v1. Faça login em POST /api/v1/auth/login, copie o campo token e clique em Authorize. Cole somente o JWT, sem o prefixo Bearer. O Swagger adiciona Authorization: Bearer automaticamente. Cadastro público sempre cria USER; somente ADMIN cadastra autores e livros. Validações retornam 400. Senhas e hashes nunca são retornados."
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "Servidor atual (mesma origem da documentação)"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Autenticação"
+    },
+    {
+      "name": "Livros"
+    },
+    {
+      "name": "Autores"
+    },
+    {
+      "name": "Comentários"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Insira somente o token JWT obtido no login."
+      }
+    },
+    "schemas": {
+      "Registro": {
+        "type": "object",
+        "required": [
+          "nome",
+          "email",
+          "senha"
+        ],
+        "properties": {
+          "nome": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "example": "Ana Silva"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "ana@example.com"
+          },
+          "senha": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "example": "minhaSenha123",
+            "maxLength": 72,
+            "description": "Máximo de 72 bytes UTF-8 (limite do BCrypt)."
+          }
+        }
+      },
+      "Login": {
+        "type": "object",
+        "required": [
+          "email",
+          "senha"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "admin@livraria.com"
+          },
+          "senha": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "example": "admin123"
+          }
+        }
+      },
+      "NovoAutor": {
+        "type": "object",
+        "required": [
+          "nome"
+        ],
+        "properties": {
+          "nome": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "example": "Clarice Lispector"
+          },
+          "nacionalidade": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "example": "Brasileira"
+          }
+        }
+      },
+      "NovoLivro": {
+        "type": "object",
+        "required": [
+          "titulo",
+          "autor_id"
+        ],
+        "properties": {
+          "titulo": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "example": "A Hora da Estrela"
+          },
+          "ano": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 1977,
+            "description": "Se omitido, utiliza o ano atual."
+          },
+          "autor_id": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 1
+          }
+        }
+      },
+      "NovoComentario": {
+        "type": "object",
+        "required": [
+          "texto"
+        ],
+        "properties": {
+          "texto": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "example": "Uma leitura marcante e sensível."
+          }
+        }
+      },
+      "Erro": {
+        "type": "object",
+        "required": [
+          "erro"
+        ],
+        "properties": {
+          "erro": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "example": "Livro não localizado."
+          }
+        }
+      },
+      "UsuarioLogin": {
+        "type": "object",
+        "required": [
+          "id",
+          "nome",
+          "role"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 1
+          },
+          "nome": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "example": "Admin"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "USER",
+              "ADMIN"
+            ],
+            "example": "ADMIN"
+          }
+        }
+      },
+      "Usuario": {
+        "type": "object",
+        "required": [
+          "id",
+          "nome",
+          "email",
+          "role"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 1
+          },
+          "nome": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "example": "Ana Silva"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "ana@example.com"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "USER",
+              "ADMIN"
+            ],
+            "example": "USER"
+          }
+        }
+      },
+      "Sessao": {
+        "type": "object",
+        "required": [
+          "usuario",
+          "token"
+        ],
+        "properties": {
+          "usuario": {
+            "$ref": "#/components/schemas/UsuarioLogin"
+          },
+          "token": {
+            "type": "string",
+            "description": "JWT válido por 2 horas. Copie apenas este valor para Authorize.",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsInJvbGUiOiJBRE1JTiJ9.assinatura"
+          }
+        }
+      },
+      "Autor": {
+        "type": "object",
+        "required": [
+          "id",
+          "nome",
+          "nacionalidade"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 1
+          },
+          "nome": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "example": "Machado de Assis"
+          },
+          "nacionalidade": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "example": "Brasileiro"
+          }
+        }
+      },
+      "Comentario": {
+        "type": "object",
+        "required": [
+          "id",
+          "autor_nome",
+          "texto"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 1
+          },
+          "autor_nome": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "example": "Leitor"
+          },
+          "texto": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "example": "Clássico indispensável."
+          }
+        }
+      },
+      "Livro": {
+        "type": "object",
+        "required": [
+          "id",
+          "titulo",
+          "ano",
+          "autor_id",
+          "comentarios"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 1
+          },
+          "titulo": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "example": "Dom Casmurro"
+          },
+          "ano": {
+            "type": "integer",
+            "example": 1899
+          },
+          "autor_id": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 1
+          },
+          "comentarios": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Comentario"
+            }
+          }
+        }
+      },
+      "LivroDetalhado": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Livro"
+          },
+          {
+            "type": "object",
+            "required": [
+              "autor_nome"
+            ],
+            "properties": {
+              "autor_nome": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S",
+                "example": "Machado de Assis"
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/api/v1/auth/register": {
+      "post": {
+        "operationId": "registrarUsuario",
+        "tags": [
+          "Autenticação"
+        ],
+        "summary": "Cadastrar usuário USER",
+        "description": "Público. Nome, e-mail e senha obrigatórios. O e-mail é normalizado; duplicidade retorna 409. Qualquer role enviada é ignorada, impedindo elevação de privilégios.",
+        "security": [],
+        "x-roles": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Registro"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Recurso criado com sucesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Usuario"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "JSON malformado, corpo ausente, campo obrigatório ausente ou tipo/valor inválido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                },
+                "example": {
+                  "erro": "JSON malformado. Verifique o corpo da requisição."
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "E-mail já cadastrado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                },
+                "example": {
+                  "erro": "E-mail já cadastrado no sistema."
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Falha interna inesperada no servidor.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                },
+                "example": {
+                  "erro": "Ocorreu um erro interno no servidor."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "operationId": "login",
+        "tags": [
+          "Autenticação"
+        ],
+        "summary": "Autenticar e obter JWT",
+        "description": "Público. Valida a senha com BCrypt e retorna JWT de 2 horas e dados básicos do usuário. Credenciais incorretas retornam 401.",
+        "security": [],
+        "x-roles": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Login"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Operação realizada com sucesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Sessao"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "JSON malformado, corpo ausente, campo obrigatório ausente ou tipo/valor inválido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                },
+                "example": {
+                  "erro": "JSON malformado. Verifique o corpo da requisição."
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token Bearer ausente, inválido, corrompido ou expirado; no login, credenciais inválidas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                },
+                "example": {
+                  "erro": "Token inválido, corrompido ou expirado."
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Falha interna inesperada no servidor.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                },
+                "example": {
+                  "erro": "Ocorreu um erro interno no servidor."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/livros": {
+      "get": {
+        "operationId": "listarLivros",
+        "tags": [
+          "Livros"
+        ],
+        "summary": "Listar livros",
+        "description": "Público. Retorna todos os livros com nome do autor e comentários. Sem registros, retorna lista vazia.",
+        "security": [],
+        "x-roles": [],
+        "responses": {
+          "200": {
+            "description": "Operação realizada com sucesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LivroDetalhado"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Falha interna inesperada no servidor.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                },
+                "example": {
+                  "erro": "Ocorreu um erro interno no servidor."
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "criarLivro",
+        "tags": [
+          "Livros"
+        ],
+        "summary": "Cadastrar livro (ADMIN)",
+        "description": "Exige JWT com perfil ADMIN. Título e autor_id obrigatórios. O autor deve existir (404). Ano opcional, com padrão no ano atual. O livro criado inicia sem comentários.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-roles": [
+          "ADMIN"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovoLivro"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Recurso criado com sucesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Livro"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "JSON malformado, corpo ausente, campo obrigatório ausente ou tipo/valor inválido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                },
+                "example": {
+                  "erro": "JSON malformado. Verifique o corpo da requisição."
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token Bearer ausente, inválido, corrompido ou expirado; no login, credenciais inválidas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                },
+                "example": {
+                  "erro": "Token inválido, corrompido ou expirado."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "O usuário autenticado não possui o perfil ADMIN.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                },
+                "example": {
+                  "erro": "Acesso proibido: Privilégio de ADMIN exigido para esta operação."
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Livro ou autor informado não encontrado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                },
+                "example": {
+                  "erro": "Livro não localizado."
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Falha interna inesperada no servidor.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                },
+                "example": {
+                  "erro": "Ocorreu um erro interno no servidor."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/livros/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Identificador inteiro positivo do livro.",
+          "schema": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 1
+          }
+        }
+      ],
+      "get": {
+        "operationId": "buscarLivro",
+        "tags": [
+          "Livros"
+        ],
+        "summary": "Consultar livro por ID",
+        "description": "Público. Retorna livro, nome do autor e comentários. ID inexistente retorna 404; ID com formato inválido retorna 400.",
+        "security": [],
+        "x-roles": [],
+        "responses": {
+          "200": {
+            "description": "Operação realizada com sucesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LivroDetalhado"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "JSON malformado, corpo ausente, campo obrigatório ausente ou tipo/valor inválido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                },
+                "example": {
+                  "erro": "JSON malformado. Verifique o corpo da requisição."
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Livro ou autor informado não encontrado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                },
+                "example": {
+                  "erro": "Livro não localizado."
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Falha interna inesperada no servidor.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                },
+                "example": {
+                  "erro": "Ocorreu um erro interno no servidor."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/livros/{id}/comentarios": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "description": "Identificador inteiro positivo do livro.",
+          "schema": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 1
+          }
+        }
+      ],
+      "post": {
+        "operationId": "criarComentario",
+        "tags": [
+          "Comentários"
+        ],
+        "summary": "Comentar livro (USER ou ADMIN)",
+        "description": "Exige JWT válido de USER ou ADMIN. Texto obrigatório e não vazio. O nome do autor do comentário é obtido do token, e não do corpo enviado. Livro inexistente retorna 404.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-roles": [
+          "USER",
+          "ADMIN"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovoComentario"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Recurso criado com sucesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Comentario"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "JSON malformado, corpo ausente, campo obrigatório ausente ou tipo/valor inválido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                },
+                "example": {
+                  "erro": "JSON malformado. Verifique o corpo da requisição."
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token Bearer ausente, inválido, corrompido ou expirado; no login, credenciais inválidas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                },
+                "example": {
+                  "erro": "Token inválido, corrompido ou expirado."
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Livro ou autor informado não encontrado.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                },
+                "example": {
+                  "erro": "Livro não localizado."
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Falha interna inesperada no servidor.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                },
+                "example": {
+                  "erro": "Ocorreu um erro interno no servidor."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/autores": {
+      "get": {
+        "operationId": "listarAutores",
+        "tags": [
+          "Autores"
+        ],
+        "summary": "Listar autores",
+        "description": "Público. Retorna os autores disponíveis para associação com livros.",
+        "security": [],
+        "x-roles": [],
+        "responses": {
+          "200": {
+            "description": "Operação realizada com sucesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Autor"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Falha interna inesperada no servidor.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                },
+                "example": {
+                  "erro": "Ocorreu um erro interno no servidor."
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "criarAutor",
+        "tags": [
+          "Autores"
+        ],
+        "summary": "Cadastrar autor (ADMIN)",
+        "description": "Exige JWT com perfil ADMIN. Nome obrigatório. Nacionalidade opcional; se omitida, recebe Não informada.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-roles": [
+          "ADMIN"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovoAutor"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Recurso criado com sucesso.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Autor"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "JSON malformado, corpo ausente, campo obrigatório ausente ou tipo/valor inválido.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                },
+                "example": {
+                  "erro": "JSON malformado. Verifique o corpo da requisição."
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token Bearer ausente, inválido, corrompido ou expirado; no login, credenciais inválidas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                },
+                "example": {
+                  "erro": "Token inválido, corrompido ou expirado."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "O usuário autenticado não possui o perfil ADMIN.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                },
+                "example": {
+                  "erro": "Acesso proibido: Privilégio de ADMIN exigido para esta operação."
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Falha interna inesperada no servidor.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                },
+                "example": {
+                  "erro": "Ocorreu um erro interno no servidor."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

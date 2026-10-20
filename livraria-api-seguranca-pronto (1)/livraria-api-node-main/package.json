@@ -1,20 +1,30 @@
 {
   "name": "livraria-api",
-  "version": "1.0.0",
-  "description": "API RESTful de Livros e Autores com BCrypt, JWT e RBAC",
+  "version": "1.1.0",
+  "description": "API de Livros e Autores com JWT, RBAC e OpenAPI 3.0/Swagger UI",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "test": "node --test",
+    "start": "node server.js",
+    "docs:export": "node scripts/export-openapi.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
+    "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
     "express": "^5.2.1",
-    "bcrypt": "^6.0.0",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "swagger-ui-express": "^5.0.1"
+  },
+  "devDependencies": {
+    "@apidevtools/swagger-parser": "^13.1.0"
+  },
+  "engines": {
+    "node": ">=22.19.0"
   }
 }

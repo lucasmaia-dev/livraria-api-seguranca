@@ -4,7 +4,7 @@ const path = require('path');
 class LivrariaRepository {
   constructor() {
     // Garante que o arquivo fique na raiz do projeto (onde o server.js roda)
-    this.dbPath = path.resolve(process.cwd(), 'database.txt');
+    this.dbPath = process.env.DATABASE_PATH || path.resolve(__dirname, '..', 'database.txt');
     this._garantirArquivoInicial();
   }
 
